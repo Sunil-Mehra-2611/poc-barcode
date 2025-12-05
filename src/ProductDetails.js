@@ -41,6 +41,20 @@ export default function ProductDetails() {
   const { products: contextProducts = [] } = useProducts();
 
   useEffect(() => {
+    // Hide body overflow and ensure full page - only show product details
+    const root = document.getElementById('root');
+    if (root) {
+      root.style.margin = '0';
+      root.style.padding = '0';
+      root.style.width = '100%';
+      root.style.height = '100%';
+    }
+    document.body.style.overflow = 'hidden';
+    document.body.style.margin = '0';
+    document.body.style.padding = '0';
+    document.body.style.width = '100%';
+    document.body.style.height = '100%';
+    
     // Priority 1: Try to get product data from URL (for mobile scan)
     const urlProduct = getProductFromURL(searchParams);
     if (urlProduct && urlProduct.id === productId) {
@@ -74,24 +88,40 @@ export default function ProductDetails() {
 
     // Not found
     setProduct(null);
+    
+    return () => {
+      if (root) {
+        root.style.margin = '';
+        root.style.padding = '';
+        root.style.width = '';
+        root.style.height = '';
+      }
+      document.body.style.overflow = '';
+      document.body.style.margin = '';
+      document.body.style.padding = '';
+      document.body.style.width = '';
+      document.body.style.height = '';
+    };
   }, [productId, searchParams, contextProducts]);
 
   if (!product) {
     return (
-      <div style={{ padding: 20, textAlign: "center" }}>
-        <h2>Product Not Found</h2>
-        <p>The product you're looking for doesn't exist.</p>
+      <div className="product-details-page">
+        <div className="product-details-simple">
+          <h2>Product Not Found</h2>
+          <p>The product you're looking for doesn't exist.</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div style={{ padding: 20, maxWidth: 600, margin: "0 auto" }}>
-      <div className="hover-card" style={{ position: "relative", marginTop: 20 }}>
-        <h3>{product.name}</h3>
-        <img src={product.image} width="80" alt={product.name} />
-        <p>Price: {product.price}</p>
-        <p>ID: {product.id}</p>
+    <div className="product-details-page">
+      <div className="product-details-simple">
+        <h1>{product.name}</h1>
+        <img src={product.image} alt={product.name} />
+        <p className="price">{product.price}</p>
+        <p className="id">Product ID: {product.id}</p>
       </div>
     </div>
   );
