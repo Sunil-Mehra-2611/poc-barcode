@@ -98,9 +98,16 @@ export default function BarcodeGenerator({ product }) {
       {showDetails && (
         <div className="hover-card">
           <h3>{product.name}</h3>
-          <img src={product.image} width="80" alt={product.name} />
+          <img 
+            src={product.image || 'https://via.placeholder.com/100'} 
+            width="80" 
+            alt={product.name}
+            onError={(e) => {
+              e.target.src = 'https://via.placeholder.com/100';
+            }}
+          />
           <p>Price: {product.price}</p>
-          {product.description && (
+          {product.description && product.description.trim() && (
             <p className="description-text">{product.description}</p>
           )}
           <p>ID: {product.id}</p>

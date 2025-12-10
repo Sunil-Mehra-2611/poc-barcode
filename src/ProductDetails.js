@@ -40,6 +40,28 @@ export default function ProductDetails() {
   // Get products from context
   const { products: contextProducts = [] } = useProducts();
 
+  // Function to find product from all sources
+  const findProductFromAllSources = (id) => {
+    // Check context first
+    if (contextProducts && contextProducts.length > 0) {
+      const found = contextProducts.find(p => p.id === id);
+      if (found) return found;
+    }
+    
+    // Check localStorage
+    const storedProducts = getProductsFromStorage();
+    if (storedProducts && Array.isArray(storedProducts)) {
+      const found = storedProducts.find(p => p.id === id);
+      if (found) return found;
+    }
+    
+    // Check initial products
+    const found = initialProducts.find(p => p.id === id);
+    if (found) return found;
+    
+    return null;
+  };
+
   useEffect(() => {
     // Hide body overflow and ensure full page - only show product details
     const root = document.getElementById('root');
@@ -59,63 +81,38 @@ export default function ProductDetails() {
     // Note: URL data may not include image (too long for QR code), so we merge with stored data
     const urlProduct = getProductFromURL(searchParams);
     if (urlProduct && urlProduct.id === productId) {
-      // Try to find full product data from storage to get image
-      let fullProduct = null;
-      
-      // Check context first
-      if (contextProducts && contextProducts.length > 0) {
-        fullProduct = contextProducts.find(p => p.id === productId);
-      }
-      
-      // If not in context, check localStorage
-      if (!fullProduct) {
-        const storedProducts = getProductsFromStorage();
-        fullProduct = storedProducts.find(p => p.id === productId);
-      }
-      
-      // If not in localStorage, check initial products
-      if (!fullProduct) {
-        fullProduct = initialProducts.find(p => p.id === productId);
-      }
+      // Try to find full product data from all sources to get image
+      const fullProduct = findProductFromAllSources(productId);
       
       // Merge URL data with full product data (URL data takes precedence for name/price/description)
+      // But always preserve image from fullProduct if available
       if (fullProduct) {
+        // Use full product image if it exists and is valid, otherwise use placeholder
+        const productImage = (fullProduct.image && fullProduct.image.trim() && fullProduct.image !== 'https://via.placeholder.com/100') 
+          ? fullProduct.image 
+          : 'https://via.placeholder.com/100';
+        
         setProduct({
           ...fullProduct,
-          ...urlProduct, // URL data overrides (but image from fullProduct is preserved if not in URL)
-          image: fullProduct.image || urlProduct.image || 'https://via.placeholder.com/100'
+          ...urlProduct, // URL data overrides name/price/description
+          image: productImage, // Always use image from fullProduct (or placeholder)
+          description: urlProduct.description || fullProduct.description || '' // Use URL description if available, else full product description
         });
       } else {
         // No full product found, use URL data with default image
         setProduct({
           ...urlProduct,
-          image: urlProduct.image || 'https://via.placeholder.com/100'
+          image: 'https://via.placeholder.com/100',
+          description: urlProduct.description || ''
         });
       }
       return;
     }
 
-    // Priority 2: Try context products
-    if (contextProducts && contextProducts.length > 0) {
-      const foundProduct = contextProducts.find(p => p.id === productId);
-      if (foundProduct) {
-        setProduct(foundProduct);
-        return;
-      }
-    }
-
-    // Priority 3: Try localStorage
-    const storedProducts = getProductsFromStorage();
-    const foundProduct = storedProducts.find(p => p.id === productId);
+    // Priority 2: Try to find product from all sources (when no URL data)
+    const foundProduct = findProductFromAllSources(productId);
     if (foundProduct) {
       setProduct(foundProduct);
-      return;
-    }
-
-    // Priority 4: Try initial products (mockData)
-    const initialProduct = initialProducts.find(p => p.id === productId);
-    if (initialProduct) {
-      setProduct(initialProduct);
       return;
     }
 
@@ -148,13 +145,22 @@ export default function ProductDetails() {
     );
   }
 
+  // Handle image error - fallback to placeholder
+  const handleImageError = (e) => {
+    e.target.src = 'https://via.placeholder.com/100';
+  };
+
   return (
     <div className="product-details-page">
       <div className="product-details-simple">
         <h1>{product.name}</h1>
-        <img src={product.image} alt={product.name} />
+        <img 
+          src={product.image || 'https://via.placeholder.com/100'} 
+          alt={product.name}
+          onError={handleImageError}
+        />
         <p className="price">{product.price}</p>
-        {product.description && (
+        {product.description && product.description.trim() && (
           <p className="description">{product.description}</p>
         )}
         <p className="id">Product ID: {product.id}</p>
