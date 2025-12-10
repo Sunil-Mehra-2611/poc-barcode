@@ -3,7 +3,7 @@ import { QRCodeSVG } from "qrcode.react";
 
 export default function BarcodeGenerator({ product }) {
   const [showDetails, setShowDetails] = useState(false);
-  const qrRef = useRef(null);
+  const qrRef = useRef(null); 
   
   // Safety check
   if (!product || !product.id) {
