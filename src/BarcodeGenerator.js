@@ -1,9 +1,19 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { QRCodeSVG } from "qrcode.react";
 
 export default function BarcodeGenerator({ product }) {
   const [showDetails, setShowDetails] = useState(false);
-  const qrRef = useRef(null); 
+  const qrRef = useRef(null);
+  const hideTimeoutRef = useRef(null); 
+  
+  // Cleanup timeout on unmount - must be called before any early returns
+  useEffect(() => {
+    return () => {
+      if (hideTimeoutRef.current) {
+        clearTimeout(hideTimeoutRef.current);
+      }
+    };
+  }, []);
   
   // Safety check
   if (!product || !product.id) {
@@ -35,6 +45,24 @@ export default function BarcodeGenerator({ product }) {
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
     productUrl = `${origin}/product/${product.id}`;
   }
+
+  // Handle mouse enter - show card immediately
+  const handleMouseEnter = (e) => {
+    e.preventDefault();
+    if (hideTimeoutRef.current) {
+      clearTimeout(hideTimeoutRef.current);
+      hideTimeoutRef.current = null;
+    }
+    setShowDetails(true);
+  };
+
+  // Handle mouse leave - hide card with delay
+  const handleMouseLeave = (e) => {
+    e.preventDefault();
+    hideTimeoutRef.current = setTimeout(() => {
+      setShowDetails(false);
+    }, 300); // 300ms delay before hiding to allow mouse movement to card
+  };
 
   // Download QR Code as PNG
   const downloadQRCode = () => {
@@ -70,8 +98,8 @@ export default function BarcodeGenerator({ product }) {
     <div 
       className="barcode-container"
       style={{ marginBottom: 20, position: "relative" }}
-      onMouseEnter={() => setShowDetails(true)}
-      onMouseLeave={() => setShowDetails(false)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       {/* <h4>{product.name}</h4> */}
       <div className="barcode-wrapper" ref={qrRef}>
@@ -96,21 +124,45 @@ export default function BarcodeGenerator({ product }) {
       </button>
       
       {showDetails && (
-        <div className="hover-card">
-          <h3>{product.name}</h3>
-          <img 
-            src={product.image || 'https://via.placeholder.com/100'} 
-            width="80" 
-            alt={product.name}
-            onError={(e) => {
-              e.target.src = 'https://via.placeholder.com/100';
-            }}
-          />
-          <p>Price: {product.price}</p>
-          {product.description && product.description.trim() && (
-            <p className="description-text">{product.description}</p>
+        <div 
+          className="hover-card"
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+        >
+          {/* Image - if available */}
+          {product.image && product.image !== 'https://via.placeholder.com/100' && (
+            <img 
+              src={product.image} 
+              width="100" 
+              alt={product.name}
+              className="hover-card-image"
+              onError={(e) => {
+                e.target.src = 'https://via.placeholder.com/100';
+              }}
+            />
           )}
-          <p>ID: {product.id}</p>
+          
+          {/* Product ID */}
+          <p className="hover-card-field">
+            <span className="field-label">Product ID:</span> {product.id}
+          </p>
+          
+          {/* Product Name */}
+          <p className="hover-card-field">
+            <span className="field-label">Product Name:</span> {product.name}
+          </p>
+          
+          {/* Product Price */}
+          <p className="hover-card-field">
+            <span className="field-label">Product Price:</span> {product.price}
+          </p>
+          
+          {/* Description */}
+          {product.description && product.description.trim() && (
+            <p className="hover-card-field description-text">
+              <span className="field-label">Description:</span> {product.description}
+            </p>
+          )}
         </div>
       )}
     </div>
