@@ -56,9 +56,42 @@ export default function ProductDetails() {
     document.body.style.height = '100%';
     
     // Priority 1: Try to get product data from URL (for mobile scan)
+    // Note: URL data may not include image (too long for QR code), so we merge with stored data
     const urlProduct = getProductFromURL(searchParams);
     if (urlProduct && urlProduct.id === productId) {
-      setProduct(urlProduct);
+      // Try to find full product data from storage to get image
+      let fullProduct = null;
+      
+      // Check context first
+      if (contextProducts && contextProducts.length > 0) {
+        fullProduct = contextProducts.find(p => p.id === productId);
+      }
+      
+      // If not in context, check localStorage
+      if (!fullProduct) {
+        const storedProducts = getProductsFromStorage();
+        fullProduct = storedProducts.find(p => p.id === productId);
+      }
+      
+      // If not in localStorage, check initial products
+      if (!fullProduct) {
+        fullProduct = initialProducts.find(p => p.id === productId);
+      }
+      
+      // Merge URL data with full product data (URL data takes precedence for name/price/description)
+      if (fullProduct) {
+        setProduct({
+          ...fullProduct,
+          ...urlProduct, // URL data overrides (but image from fullProduct is preserved if not in URL)
+          image: fullProduct.image || urlProduct.image || 'https://via.placeholder.com/100'
+        });
+      } else {
+        // No full product found, use URL data with default image
+        setProduct({
+          ...urlProduct,
+          image: urlProduct.image || 'https://via.placeholder.com/100'
+        });
+      }
       return;
     }
 
@@ -121,6 +154,9 @@ export default function ProductDetails() {
         <h1>{product.name}</h1>
         <img src={product.image} alt={product.name} />
         <p className="price">{product.price}</p>
+        {product.description && (
+          <p className="description">{product.description}</p>
+        )}
         <p className="id">Product ID: {product.id}</p>
       </div>
     </div>

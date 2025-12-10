@@ -11,14 +11,22 @@ export default function BarcodeGenerator({ product }) {
   }
 
   // Create URL for product details page with encoded product data
-  // This ensures product data is available even on different devices
+  // Note: Image is excluded from QR code data as base64 images are too long for QR codes
+  // The image will be fetched from localStorage/context when the product page loads
   let productUrl = '';
   try {
+    // Limit description length to prevent QR code from being too long
+    const maxDescriptionLength = 200;
+    const truncatedDescription = product.description 
+      ? product.description.substring(0, maxDescriptionLength)
+      : '';
+    
     const productData = btoa(JSON.stringify({
       id: product.id || '',
       name: product.name || '',
       price: product.price || '',
-      image: product.image || 'https://via.placeholder.com/100'
+      description: truncatedDescription
+      // Image excluded - too long for QR code, will be fetched from storage
     }));
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
     productUrl = `${origin}/product/${product.id}?data=${encodeURIComponent(productData)}`;
@@ -92,6 +100,9 @@ export default function BarcodeGenerator({ product }) {
           <h3>{product.name}</h3>
           <img src={product.image} width="80" alt={product.name} />
           <p>Price: {product.price}</p>
+          {product.description && (
+            <p className="description-text">{product.description}</p>
+          )}
           <p>ID: {product.id}</p>
         </div>
       )}
